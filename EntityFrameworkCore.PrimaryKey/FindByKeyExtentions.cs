@@ -1,6 +1,9 @@
-﻿using System;
+﻿using Microsoft.EntityFrameworkCore;
+using System;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace EntityFrameworkCore.PrimaryKey
 {
@@ -8,14 +11,20 @@ namespace EntityFrameworkCore.PrimaryKey
     {
         public static TEntity Find<TEntity>(this IQueryable<TEntity> source, PrimaryKeyDictionary<TEntity> primaryKeyDictionary) where TEntity : class
         {
-            return source.FirstOrDefault(primaryKeyDictionary.MakeExpression());
+            return source.FirstOrDefault(primaryKeyDictionary.BuildLambda());
+        }
+        public static  Task<TEntity> FindAsync<TEntity>(this IQueryable<TEntity> source, PrimaryKeyDictionary<TEntity> primaryKeyDictionary, CancellationToken cancellationToken = default(CancellationToken)) where TEntity : class
+        {
+            
+            return  source.FirstOrDefaultAsync(primaryKeyDictionary.BuildLambda(), cancellationToken);
         }
 
-        static internal Expression<Func<TEntity, bool>> MakeExpression<TEntity>(this PrimaryKeyDictionary<TEntity> keyDictionary) where TEntity : class
+        static internal Expression<Func<TEntity, bool>> BuildLambda<TEntity>(this PrimaryKeyDictionary<TEntity> keyDictionary) where TEntity : class
         {
             var type = typeof(TEntity);
             var pe = Expression.Parameter(type, "item");
-            Expression expression = keyDictionary.MakeExpression(pe);
+            Expression expression = keyDictionary.BuildExpression(pe);
+
             if (expression == null)
             {
                 return null;
@@ -24,7 +33,7 @@ namespace EntityFrameworkCore.PrimaryKey
             return lambda;
         }
 
-        static internal Expression MakeExpression<TEntity>(this PrimaryKeyDictionary<TEntity> keyDictionary, ParameterExpression parametr) where TEntity : class
+        static internal Expression BuildExpression<TEntity>(this PrimaryKeyDictionary<TEntity> keyDictionary, ParameterExpression parametr) where TEntity : class
         {
             if (!keyDictionary.Any())
             {
