@@ -19,7 +19,7 @@ namespace EntityFrameworkCore.PrimaryKey
             return  source.FirstOrDefaultAsync(primaryKeyDictionary.BuildLambda(), cancellationToken);
         }
 
-        static internal Expression<Func<TEntity, bool>> BuildLambda<TEntity>(this PrimaryKeyDictionary<TEntity> keyDictionary) where TEntity : class
+        public static  Expression<Func<TEntity, bool>> BuildLambda<TEntity>(this PrimaryKeyDictionary<TEntity> keyDictionary) where TEntity : class
         {
             var type = typeof(TEntity);
             var pe = Expression.Parameter(type, "item");
