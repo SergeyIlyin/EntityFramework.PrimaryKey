@@ -1,5 +1,6 @@
 ﻿using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading;
@@ -9,21 +10,21 @@ namespace EntityFrameworkCore.PrimaryKey
 {
     public static class FindByKeyExtentions
     {
-        public static TEntity Find<TEntity>(this IQueryable<TEntity> source, PrimaryKeyDictionary<TEntity> primaryKeyDictionary) where TEntity : class
+        public static TEntity Find<TEntity>(this IQueryable<TEntity> source, IDictionary<string, object> dictionary) where TEntity : class
         {
-            return source.FirstOrDefault(primaryKeyDictionary.BuildLambda());
-        }
-        public static  Task<TEntity> FindAsync<TEntity>(this IQueryable<TEntity> source, PrimaryKeyDictionary<TEntity> primaryKeyDictionary, CancellationToken cancellationToken = default(CancellationToken)) where TEntity : class
-        {
-            
-            return  source.FirstOrDefaultAsync(primaryKeyDictionary.BuildLambda(), cancellationToken);
+            return source.FirstOrDefault(dictionary.BuildLambda<TEntity>());
         }
 
-        public static  Expression<Func<TEntity, bool>> BuildLambda<TEntity>(this PrimaryKeyDictionary<TEntity> keyDictionary) where TEntity : class
+        public static Task<TEntity> FindAsync<TEntity>(this IQueryable<TEntity> source, IDictionary<string, object> dictionary, CancellationToken cancellationToken = default(CancellationToken)) where TEntity : class
+        {
+            return source.FirstOrDefaultAsync(dictionary.BuildLambda<TEntity>(), cancellationToken);
+        }
+
+        public static Expression<Func<TEntity, bool>> BuildLambda<TEntity>(this IDictionary<string, object> dictionary) where TEntity : class
         {
             var type = typeof(TEntity);
             var pe = Expression.Parameter(type, "item");
-            Expression expression = keyDictionary.BuildExpression(pe);
+            Expression expression = dictionary.BuildExpression<TEntity>(pe);
 
             if (expression == null)
             {
@@ -32,17 +33,16 @@ namespace EntityFrameworkCore.PrimaryKey
             var lambda = Expression.Lambda<Func<TEntity, bool>>(expression, pe);
             return lambda;
         }
-
-        static internal Expression BuildExpression<TEntity>(this PrimaryKeyDictionary<TEntity> keyDictionary, ParameterExpression parametr) where TEntity : class
+        static internal Expression BuildExpression<TEntity>(this IDictionary<string, object> dictionary, ParameterExpression parametr) where TEntity : class
         {
-            if (!keyDictionary.Any())
+            if (!dictionary.Any())
             {
                 return null;
             }
 
             Expression final = null;
             Expression left = null;
-            foreach (var keyValue in keyDictionary)
+            foreach (var keyValue in dictionary)
             {
                 var propertyExp = Expression.Property(parametr, keyValue.Key);
                 var valueExp = Expression.Constant(keyValue.Value);
